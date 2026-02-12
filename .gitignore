@@ -8,11 +8,14 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Debug binaries
+__debug*
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+build/
+messages.log
 
 # Go workspace file
 go.work
