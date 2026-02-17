@@ -22,18 +22,25 @@ type treeNode struct {
 }
 
 func NewFileTree(rootDir string) *FileTree {
+	root := tview.NewTreeNode(rootDir).SetColor(tcell.ColorRed)
+
+	tree := tview.NewTreeView()
+	tree.
+		SetTopLevel(1).
+		SetGraphics(false).
+		SetRoot(root).
+		SetCurrentNode(root).
+		SetBorder(true)
+
+
 	ft := &FileTree{
-		tree:    tview.NewTreeView().SetTopLevel(1).SetGraphics(false),
+		tree:    tree,
 		rootDir: rootDir,
-		root:    tview.NewTreeNode(rootDir).SetColor(tcell.ColorRed),
+		root: root,
 	}
 
 	ft.addChildren(ft.root, ft.rootDir)
-
-	ft.tree.
-		SetRoot(ft.root).
-		SetCurrentNode(ft.root).
-		SetSelectedFunc(ft.handleSelected)
+	ft.tree.SetSelectedFunc(ft.handleSelected)
 
 	return ft
 }
@@ -43,6 +50,7 @@ func (ft *FileTree) addChildren(target *tview.TreeNode, path string) {
 	if err != nil {
 		panic(err)
 	}
+
 
 	for _, item := range treeItems {
 		reference := treeNode{filepath.Join(path, item.Name()), item.IsDir(), item.Name()}
@@ -100,6 +108,6 @@ func fileSelected(path string) {
 	}
 }
 
-func (ft *FileTree) GetView() *tview.TreeView {
+func (ft *FileTree) GetView() tview.Primitive {
 	return ft.tree
 }
