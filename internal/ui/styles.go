@@ -5,7 +5,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-
 func SetupStyle() {
 	tview.Borders.TopLeft = '╭'
 	tview.Borders.TopRight = '╮'
@@ -23,6 +22,22 @@ func SetupStyle() {
 	tview.Borders.HorizontalFocus = '─'
 	tview.Borders.VerticalFocus = '│'
 
+	// tview.Borders.TopLeft = '╭'
+	// tview.Borders.TopRight = '╮'
+	// tview.Borders.BottomLeft = '╰'
+	// tview.Borders.BottomRight = '╯'
+	//
+	// tview.Borders.TopLeftFocus = '┏'
+	// tview.Borders.TopRightFocus = '┓'
+	// tview.Borders.BottomLeftFocus = '┗'
+	// tview.Borders.BottomRightFocus = '┛'
+	//
+	// tview.Borders.Horizontal = '─'
+	// tview.Borders.Vertical = '│'
+	//
+	// tview.Borders.HorizontalFocus = '━'
+	// tview.Borders.VerticalFocus = '┃'
+
 	tview.Styles.PrimitiveBackgroundColor = tcell.NewRGBColor(25, 23, 36)
 	tview.Styles.ContrastBackgroundColor = tcell.NewRGBColor(33, 32, 46)
 	tview.Styles.MoreContrastBackgroundColor = tcell.NewRGBColor(42, 39, 63)
@@ -36,3 +51,17 @@ func SetupStyle() {
 	tview.Styles.ContrastSecondaryTextColor = tcell.NewRGBColor(235, 111, 146)
 
 }
+
+// func SetBorderColorFocused[t *tview.Primitive]() {
+// 	t.SetFocusFunc(func () {
+// 		b.SetBorderColor(tcell.ColorGreen)
+//
+// 	})
+// }
+//
+// func SetBorderColorBlurred[t *tview.Primitive](b *tview.TreeView) {
+// 	b.SetBlurFunc(func ()  {
+// 		b.SetBorderColor(tcell.ColorGray)
+// 	})
+// }
+//

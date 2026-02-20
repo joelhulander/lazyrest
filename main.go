@@ -4,14 +4,18 @@ import (
 	"fmt"
 	"os"
 
-	"codeberg.org/joelhulander/lazyrest/internal"
+	"github.com/joelhulander/lazyrest/internal"
 )
 
+
 func main() {
-	app := internal.NewApp()
+	internal.Setup()
+	defer internal.Cleanup()
+	app := internal.NewApp(internal.GetRootDir())
 
 	if err := app.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
+

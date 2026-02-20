@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,10 +10,13 @@ import (
 	"github.com/rivo/tview"
 )
 
+var fileTree *FileTree 
+
 type FileTree struct {
 	tree    *tview.TreeView
 	root    *tview.TreeNode
 	rootDir string
+	errorLogger *log.Logger
 }
 
 type treeNode struct {
@@ -21,7 +25,7 @@ type treeNode struct {
 	name  string
 }
 
-func NewFileTree(rootDir string) *FileTree {
+func NewFileTree(rootDir string, errorLogger *log.Logger) *FileTree {
 	root := tview.NewTreeNode(rootDir).SetColor(tcell.ColorRed)
 
 	tree := tview.NewTreeView()
@@ -32,23 +36,32 @@ func NewFileTree(rootDir string) *FileTree {
 		SetCurrentNode(root).
 		SetBorder(true)
 
+	tree.SetTitle("Collections")
 
 	ft := &FileTree{
 		tree:    tree,
 		rootDir: rootDir,
 		root: root,
+		errorLogger: errorLogger,
 	}
 
-	ft.addChildren(ft.root, ft.rootDir)
+	err := ft.addChildren(ft.root, ft.rootDir)
+	
+	if err != nil {
+		ft.errorLogger.Println(err)
+	}
+
 	ft.tree.SetSelectedFunc(ft.handleSelected)
+
+	fileTree = ft
 
 	return ft
 }
 
-func (ft *FileTree) addChildren(target *tview.TreeNode, path string) {
+func (ft *FileTree) addChildren(target *tview.TreeNode, path string) error {
 	treeItems, err := os.ReadDir(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 
@@ -66,6 +79,8 @@ func (ft *FileTree) addChildren(target *tview.TreeNode, path string) {
 
 		target.AddChild(node)
 	}
+
+	return nil
 }
 
 func (ft *FileTree) handleSelected(node *tview.TreeNode) {
@@ -97,17 +112,19 @@ func (ft *FileTree) handleSelected(node *tview.TreeNode) {
 		return
 	}
 
-	node.SetSelectedFunc(func() { fileSelected(reference.path) })
-}
-
-func fileSelected(path string) {
-	_, err := os.ReadFile(path)
-
-	if err != nil {
-		panic(err)
-	}
+	node.SetSelectedFunc(func() { ft.fileSelected(reference.path) })
 }
 
 func (ft *FileTree) GetView() tview.Primitive {
 	return ft.tree
+}
+
+func (ft *FileTree) fileSelected(path string) {
+	fileContent, err := os.ReadFile(path)
+
+	if err != nil {
+		ft.errorLogger.Println(err)
+	}
+
+	responseView.textArea.SetText(string(fileContent))
 }

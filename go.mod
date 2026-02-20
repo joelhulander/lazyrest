@@ -1,4 +1,4 @@
-module codeberg.org/joelhulander/lazyrest
+module github.com/joelhulander/lazyrest
 
 go 1.25.7
 
