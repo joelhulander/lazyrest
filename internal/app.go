@@ -9,8 +9,8 @@ import (
 
 type LazyRestApp struct {
 	tviewApp *tview.Application
-	fileTree *ui.FileTree
-	urlField *ui.UrlField
+	explorer *ui.CollectionsExplorer
+	requestUrlBar *ui.RequestUrlBar
 	layout *ui.Layout
 }
 
@@ -20,16 +20,22 @@ func NewApp(rootDir string) *LazyRestApp {
 	ui.SetupStyle()
 
 	var layout *ui.Layout
+
+	focusWorkspaceGrid := func() {
+		tviewApp.SetFocus(layout.WorkspaceGrid)
+	}
+
 	var app *LazyRestApp
-	tree := ui.NewFileTree(rootDir, errorLogger)
-	input := ui.NewUrlField(func() {tviewApp.SetFocus(layout.RequestFlex)})
-	textView := ui.NewResponseView()
-	layout = ui.NewLayout(tviewApp, tree, input, textView, messagesLogger)
+	tree := ui.NewCollectionsExplorer(rootDir, errorLogger)
+	urlBar := ui.NewRequestUrlBar(focusWorkspaceGrid)
+	textView := ui.NewResponseViewer()
+	dropDown := ui.NewMethodDropDown(focusWorkspaceGrid)
+	layout = ui.NewLayout(tviewApp, tree, dropDown, urlBar, textView, messagesLogger)
 
 	app = &LazyRestApp{
 		tviewApp: tviewApp,
-		fileTree: tree,
-		urlField: input,
+		explorer: tree,
+		requestUrlBar: urlBar,
 		layout: layout,
 	}
 
@@ -41,7 +47,7 @@ func (a *LazyRestApp) Run() error {
 		EnableMouse(true).
 		SetTitle("lazyrest").
 		SetRoot(a.layout.GetView(), true).
-		SetFocus(a.fileTree.GetView())
+		SetFocus(a.explorer.GetView())
 	a.SetKeybindings()
 	return a.tviewApp.Run()
 }
@@ -54,9 +60,9 @@ func (a *LazyRestApp) SetKeybindings() {
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case '1':
-				a.tviewApp.SetFocus(a.layout.CollectionsFlex)
+				a.tviewApp.SetFocus(a.explorer.GetView())
 			case '2':
-				a.tviewApp.SetFocus(a.layout.RequestFlex)
+				a.tviewApp.SetFocus(a.layout.WorkspaceGrid)
 			}
 		}
 		return event

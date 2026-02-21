@@ -2,71 +2,104 @@ package ui
 
 import (
 	"log"
+	"slices"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-var layout *Layout
-
 type Layout struct {
 	app *tview.Application
-	root            *tview.Flex
-	CollectionsFlex *tview.Flex
-	RequestFlex     *tview.Flex
+	root            *tview.Grid
+	WorkspaceGrid     *tview.Grid
 	activeBox *tview.Box
-	currentFocus    int
 	messagesLogger *log.Logger
-	urlField *UrlField
+	requestUrlBar *RequestUrlBar
+	methods *tview.DropDown
+	focusOrder []*tview.Box
 }
 
-func NewLayout(app *tview.Application, tree *FileTree, input *UrlField, textView *ResponseView, messagesLogger *log.Logger) *Layout {
-	collectionsFlex := tview.NewFlex()
-	requestFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+var layout *Layout
 
-	flex := collectionsFlex.
-		AddItem(tree.GetView(), 0, 1, false).
-		AddItem(requestFlex.
-			AddItem(input.GetView(), 0, 1, false).
-			AddItem(textView.GetView(), 0, 17, false),
-			0, 2, false)
+func NewLayout(app *tview.Application, explorer *CollectionsExplorer, dropDown *MethodDropDown, urlBar *RequestUrlBar, responseViewer *ResponseViewer, messagesLogger *log.Logger) *Layout {
 
-	requestFlex.SetBorder(true).SetTitle("Request")
+	flex := tview.NewFlex().AddItem(dropDown.view, 6, 1, false).AddItem(urlBar.field, 0, 1, false)
+
+	area := tview.NewTextArea()
+	area.SetBorder(true)
+	rFlex := tview.NewFlex().AddItem(area, 1, 1, false)
+	rFlex.SetBorder(true).SetTitle(" Request ")
+
+	rrFlex := tview.NewFlex().AddItem(responseViewer.view, 1, 1, false)
+	rrFlex.SetBorder(true).SetTitle(" Response ")
+
+	workspaceGrid := tview.NewGrid().
+		SetRows(2, 0).
+		SetColumns(0, 0).
+		AddItem(flex, 0, 0, 1, 2, 0, 0, false).
+		// Horizontal split
+		AddItem(rFlex, 1, 0, 1, 2, 0, 0, false).
+		AddItem(rrFlex, 2, 0, 1, 2, 0, 0, false)
+		// Vertical split
+		// AddItem(rFlex, 1, 0, 2, 1, 0, 0, false).
+		// AddItem(rrFlex, 1, 1, 2, 1, 0, 0, false)
+
+	screenGrid := tview.NewGrid().
+		SetColumns(30, 0).
+		AddItem(explorer.view, 0, 0, 1, 1, 0, 0, false).
+		AddItem(workspaceGrid, 0, 1, 1, 1, 0, 0, false)
+
+	workspaceGrid.
+		SetBorder(true).
+		SetTitle("[2] Workspace ").
+		SetTitleAlign(0).
+		SetBorderPadding(1,0,1,1)
+
+	focusOrder := []*tview.Box{explorer.view.Box, workspaceGrid.Box}
 
 	layout := &Layout{
 		app: app,
-		root:            flex,
-		CollectionsFlex: collectionsFlex,
-		RequestFlex:     requestFlex,
-		currentFocus:    0,
+		root: screenGrid,
+		WorkspaceGrid: workspaceGrid,
+		activeBox: explorer.view.Box,
 		messagesLogger: messagesLogger,
-		urlField: input,
+		requestUrlBar: urlBar,
+		methods: dropDown.view,
+		focusOrder: focusOrder,
 	}
 
-	for i := range layout.root.GetItemCount() {
-		item := layout.root.GetItem(i)
-		switch v := item.(type) {
-		case *tview.Flex:
-			v.SetFocusFunc(layout.focusColorFunc(v.Box, v.GetTitle()))
-			v.SetBlurFunc(layout.blurColorFunc(v.Box))
-		case *tview.TreeView:
-			v.SetFocusFunc(layout.focusColorFunc(v.Box, v.GetTitle()))
-			v.SetBlurFunc(layout.blurColorFunc(v.Box))
+	workspaceGrid.SetFocusFunc(layout.focusColorFunc(workspaceGrid.Box))
+	workspaceGrid.SetBlurFunc(layout.blurColorFunc(workspaceGrid.Box))
+	explorer.view.SetFocusFunc(layout.focusColorFunc(explorer.view.Box))
+	explorer.view.SetBlurFunc(layout.blurColorFunc(explorer.view.Box))
+
+	workspaceGrid.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if app.GetFocus() == dropDown.view || dropDown.view.IsOpen() {
+			return event
 		}
-	}
 
-	requestFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if layout.activeBox == requestFlex.Box {
+		if layout.activeBox == workspaceGrid.Box {
 			switch event.Key() {
 			case tcell.KeyRune:
 				switch event.Rune() {
 				case 'i':
-					// requestFlex.SetFocus(a.layout.FocusItem(a.fileTree.GetView()))
-					app.SetFocus(layout.urlField.input)
+					app.SetFocus(layout.requestUrlBar.field)
+					return nil
+				case 'm':
+					app.SetFocus(layout.methods)
 					return nil
 				}
+			case tcell.KeyUp:
+				return nil
+			case tcell.KeyDown:
+				return nil
+			case tcell.KeyRight:
+				return nil
+			case tcell.KeyLeft:
+				return nil
 			}
 		}
+
 		return event
 	})
 
@@ -77,38 +110,29 @@ func (l *Layout) GetView() tview.Primitive {
 	return l.root
 }
 
-func (l *Layout) focusColorFunc(box *tview.Box, title string) func (){
+func (l *Layout) focusColorFunc(box *tview.Box) func (){
 	return func () {
-		l.messagesLogger.Println("Moving focus to: " + title)
 		l.activeBox = box
 		box.SetBorderColor(tcell.ColorGreen)
-		// l.messagesLogger.Printf("Focusing on box: %v\n", box)
+		box.SetTitleColor(tcell.ColorGreen)
 	}
 }
 
 func (l *Layout) blurColorFunc(box *tview.Box) func (){
 	return func () {
-		// l.messagesLogger.Printf("Leaving focus on box: %v\n", box)
 		box.SetBorderColor(tcell.ColorGray)
+		box.SetTitleColor(tcell.ColorWhite)
 	}
 }
 
 func (l *Layout) FocusNext() tview.Primitive {
-	if l.currentFocus == l.root.GetItemCount()-1 {
-		l.currentFocus = 0
-	} else {
-		l.currentFocus += 1
-	}
+	currentActiveBoxIndex := slices.Index(l.focusOrder, l.activeBox)
+	nextIndex := currentActiveBoxIndex + 1
 
-	return l.root.GetItem(l.currentFocus)
-}
+	if nextIndex >= len(l.focusOrder) {
+		nextIndex = 0
+	} 
 
-func (l *Layout) FocusItem(t tview.Primitive) tview.Primitive {
-	for i := range l.root.GetItemCount() {
-		if t == l.root.GetItem(i) {
-			return l.root.GetItem(i)
-		}
-	}
-	return nil
+	return l.focusOrder[nextIndex]
 }
 

@@ -10,10 +10,10 @@ import (
 	"github.com/rivo/tview"
 )
 
-var fileTree *FileTree 
+var explorer *CollectionsExplorer 
 
-type FileTree struct {
-	tree    *tview.TreeView
+type CollectionsExplorer struct {
+	view    *tview.TreeView
 	root    *tview.TreeNode
 	rootDir string
 	errorLogger *log.Logger
@@ -25,40 +25,39 @@ type treeNode struct {
 	name  string
 }
 
-func NewFileTree(rootDir string, errorLogger *log.Logger) *FileTree {
-	root := tview.NewTreeNode(rootDir).SetColor(tcell.ColorRed)
+func NewCollectionsExplorer(rootDir string, errorLogger *log.Logger) *CollectionsExplorer {
+	root := tview.NewTreeNode(rootDir)
 
-	tree := tview.NewTreeView()
-	tree.
+	treeView := tview.NewTreeView()
+	treeView.
 		SetTopLevel(1).
 		SetGraphics(false).
 		SetRoot(root).
 		SetCurrentNode(root).
 		SetBorder(true)
 
-	tree.SetTitle("Collections")
+	treeView.SetTitle(" [1] Collections ").SetTitleAlign(0).SetBorderPadding(1,0,1,0)
 
-	ft := &FileTree{
-		tree:    tree,
+	ft := &CollectionsExplorer{
+		view:    treeView,
 		rootDir: rootDir,
 		root: root,
 		errorLogger: errorLogger,
 	}
 
 	err := ft.addChildren(ft.root, ft.rootDir)
-	
 	if err != nil {
 		ft.errorLogger.Println(err)
 	}
 
-	ft.tree.SetSelectedFunc(ft.handleSelected)
+	ft.view.SetSelectedFunc(ft.handleSelected)
 
-	fileTree = ft
+	explorer = ft
 
 	return ft
 }
 
-func (ft *FileTree) addChildren(target *tview.TreeNode, path string) error {
+func (ft *CollectionsExplorer) addChildren(target *tview.TreeNode, path string) error {
 	treeItems, err := os.ReadDir(path)
 	if err != nil {
 		return err
@@ -83,7 +82,7 @@ func (ft *FileTree) addChildren(target *tview.TreeNode, path string) error {
 	return nil
 }
 
-func (ft *FileTree) handleSelected(node *tview.TreeNode) {
+func (ft *CollectionsExplorer) handleSelected(node *tview.TreeNode) {
 	if node.GetReference() == nil {
 		return
 	}
@@ -115,16 +114,16 @@ func (ft *FileTree) handleSelected(node *tview.TreeNode) {
 	node.SetSelectedFunc(func() { ft.fileSelected(reference.path) })
 }
 
-func (ft *FileTree) GetView() tview.Primitive {
-	return ft.tree
+func (ft *CollectionsExplorer) GetView() tview.Primitive {
+	return ft.view
 }
 
-func (ft *FileTree) fileSelected(path string) {
+func (ft *CollectionsExplorer) fileSelected(path string) {
 	fileContent, err := os.ReadFile(path)
 
 	if err != nil {
 		ft.errorLogger.Println(err)
 	}
 
-	responseView.textArea.SetText(string(fileContent))
+	responseViewer.view.SetText(string(fileContent))
 }
