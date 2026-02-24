@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +16,7 @@ type CollectionsExplorer struct {
 	view    *tview.TreeView
 	root    *tview.TreeNode
 	rootDir string
-	errorLogger *log.Logger
+	logger *slog.Logger
 }
 
 type treeNode struct {
@@ -25,7 +25,7 @@ type treeNode struct {
 	name  string
 }
 
-func NewCollectionsExplorer(rootDir string, errorLogger *log.Logger) *CollectionsExplorer {
+func NewCollectionsExplorer(rootDir string, logger *slog.Logger) *CollectionsExplorer {
 	root := tview.NewTreeNode(rootDir)
 
 	treeView := tview.NewTreeView()
@@ -42,12 +42,12 @@ func NewCollectionsExplorer(rootDir string, errorLogger *log.Logger) *Collection
 		view:    treeView,
 		rootDir: rootDir,
 		root: root,
-		errorLogger: errorLogger,
+		logger: logger,
 	}
 
 	err := ft.addChildren(ft.root, ft.rootDir)
 	if err != nil {
-		ft.errorLogger.Println(err)
+		logger.Error("error occurred", "err", err)
 	}
 
 	ft.view.SetSelectedFunc(ft.handleSelected)
@@ -114,7 +114,7 @@ func (ft *CollectionsExplorer) handleSelected(node *tview.TreeNode) {
 	node.SetSelectedFunc(func() { ft.fileSelected(reference.path) })
 }
 
-func (ft *CollectionsExplorer) GetView() tview.Primitive {
+func (ft *CollectionsExplorer) GetView() *tview.TreeView {
 	return ft.view
 }
 
@@ -122,8 +122,8 @@ func (ft *CollectionsExplorer) fileSelected(path string) {
 	fileContent, err := os.ReadFile(path)
 
 	if err != nil {
-		ft.errorLogger.Println(err)
+		ft.logger.Error("error occurred", "err", err)
 	}
 
-	responseViewer.view.SetText(string(fileContent))
+	responseView.view.SetText(string(fileContent))
 }

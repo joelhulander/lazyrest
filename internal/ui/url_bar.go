@@ -7,7 +7,6 @@ import (
 
 type RequestUrlBar struct {
 	field *tview.InputField
-	onEscape func()
 }
 
 var requestUrlBar *RequestUrlBar
@@ -21,7 +20,6 @@ func NewRequestUrlBar(onEscape func()) *RequestUrlBar {
 
 	urlBar := &RequestUrlBar {
 		field: field,
-		onEscape: onEscape,
 	}
 
 

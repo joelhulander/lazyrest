@@ -1,26 +1,40 @@
 package ui
 
-import "github.com/rivo/tview"
+import (
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+)
 
-var responseViewer *ResponseViewer
-
-type ResponseViewer struct {
+type ResponseView struct {
 	view *tview.TextView
 }
 
-func NewResponseViewer() *ResponseViewer {
-	textView := tview.NewTextView()
+var responseView *ResponseView
 
-	responseViewer = &ResponseViewer{
-		view: textView,
+func NewResponseView(onEscape func ()) *ResponseView {
+	view := tview.NewTextView()
+
+	responseView := &ResponseView{
+		view: view,
 	}
 
-	textView.SetBorder(true)
+	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			onEscape()
+		}
+		return event
+	})
 
-	return responseViewer
+	view.SetTitle(" Response ").SetBorder(true)
+
+	view.SetFocusFunc(focusColorFunc(view.Box))
+	view.SetBlurFunc(blurColorFunc(view.Box))
+
+	return responseView
 }
 
-func (r *ResponseViewer) GetView() tview.Primitive {
+func (r *ResponseView) GetView() *tview.TextView {
 	return r.view
 }
 

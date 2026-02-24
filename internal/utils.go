@@ -2,23 +2,20 @@ package internal
 
 import (
 	"fmt"
-	"log"
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
-
 )
 
-var errorFile *os.File
-var errorLogger *log.Logger
-var messagesFile *os.File
-var messagesLogger *log.Logger
+var file *os.File
+var logger *slog.Logger
 
 func Setup() {
+	logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	if _, ok := os.LookupEnv("DEBUG"); ok {
-		errorFile = newLogFile("errors.log")
-		errorLogger = log.New(errorFile, "ERROR: ", log.LstdFlags)
-		messagesFile = newLogFile("messages.log")
-		messagesLogger = log.New(messagesFile, "MESSAGE: ", log.LstdFlags)
+		file = newLogFile("app.log")
+		logger = slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{ Level: slog.LevelDebug }))
 	}
 }
 
@@ -39,24 +36,21 @@ func GetRootDir() string {
 	} 
 	directory, err := os.UserHomeDir()
 	if err != nil {
-		errorLogger.Println(err)
+		logger.Error("error occurred", "err", err)
 		os.Exit(1)
 	}
 	
 
 	if err = os.MkdirAll(filepath.Join(directory, "lazyrest"), 0755); err != nil {
-		errorLogger.Println(err)
+		logger.Error("Error occurred while creating directories", "err", err)
 	}
 
 	return filepath.Join(directory, "lazyrest")
 }
 
 func Cleanup() {
-	if errorFile != nil {
-		errorFile.Close()
-	}
-	if messagesFile != nil {
-		messagesFile.Close()
+	if file != nil {
+		file.Close()
 	}
 }
 

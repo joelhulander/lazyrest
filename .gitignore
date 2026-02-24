@@ -15,8 +15,7 @@ __debug*
 *.out
 
 build/
-errors.log
-messages.log
+app.log
 
 # Go workspace file
 go.work

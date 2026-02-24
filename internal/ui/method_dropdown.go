@@ -44,3 +44,7 @@ func NewMethodDropDown(onEscape func()) *MethodDropDown {
 
 	return dropDown
 }
+
+func (d *MethodDropDown)GetView() *tview.DropDown {
+	return d.view
+}
