@@ -1,22 +1,22 @@
 package ui
 
 import (
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
 )
 
 var explorer *CollectionsExplorer 
 
 type CollectionsExplorer struct {
+	ctx *appctx.Context
 	view    *tview.TreeView
 	root    *tview.TreeNode
 	rootDir string
-	logger *slog.Logger
 }
 
 type treeNode struct {
@@ -25,7 +25,7 @@ type treeNode struct {
 	name  string
 }
 
-func NewCollectionsExplorer(rootDir string, logger *slog.Logger) *CollectionsExplorer {
+func NewCollectionsExplorer(ctx *appctx.Context, rootDir string) *CollectionsExplorer {
 	root := tview.NewTreeNode(rootDir)
 
 	treeView := tview.NewTreeView()
@@ -39,15 +39,15 @@ func NewCollectionsExplorer(rootDir string, logger *slog.Logger) *CollectionsExp
 	treeView.SetTitle(" [1] Collections ").SetTitleAlign(0).SetBorderPadding(1,0,1,0)
 
 	ft := &CollectionsExplorer{
+		ctx: ctx,
 		view:    treeView,
 		rootDir: rootDir,
 		root: root,
-		logger: logger,
 	}
 
-	err := ft.addChildren(ft.root, ft.rootDir)
+	_, err := ft.addChildren(ft.root, ft.rootDir)
 	if err != nil {
-		logger.Error("error occurred", "err", err)
+		log.Error("error occurred", "err", err)
 	}
 
 	ft.view.SetSelectedFunc(ft.handleSelected)
@@ -57,12 +57,13 @@ func NewCollectionsExplorer(rootDir string, logger *slog.Logger) *CollectionsExp
 	return ft
 }
 
-func (ft *CollectionsExplorer) addChildren(target *tview.TreeNode, path string) error {
+func (ft *CollectionsExplorer) addChildren(target *tview.TreeNode, path string) ([]string, error) {
 	treeItems, err := os.ReadDir(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var nodes []string
 
 	for _, item := range treeItems {
 		reference := treeNode{filepath.Join(path, item.Name()), item.IsDir(), item.Name()}
@@ -77,9 +78,10 @@ func (ft *CollectionsExplorer) addChildren(target *tview.TreeNode, path string) 
 		}
 
 		target.AddChild(node)
+		nodes = append(nodes, node.GetText())
 	}
 
-	return nil
+	return nodes, nil
 }
 
 func (ft *CollectionsExplorer) handleSelected(node *tview.TreeNode) {
@@ -95,7 +97,7 @@ func (ft *CollectionsExplorer) handleSelected(node *tview.TreeNode) {
 		if len(children) == 0 {
 			path := reference.path
 			ft.addChildren(node, path)
-			node.SetText(" ▼ " + reference.name)
+			toggleNode(node, reference.name)
 			return
 		}
 
@@ -111,19 +113,20 @@ func (ft *CollectionsExplorer) handleSelected(node *tview.TreeNode) {
 		return
 	}
 
-	node.SetSelectedFunc(func() { ft.fileSelected(reference.path) })
+	node.SetSelectedFunc(func() {
+		ft.ctx.OnFileSelected(reference.path)
+	})
+}
+
+func toggleNode(node *tview.TreeNode, name string) {
+	if node.GetText() == " ▼ " + name {
+		node.SetText(" ▶ " + name)
+		return 
+	}
+	node.SetText(" ▼ " + name)
 }
 
 func (ft *CollectionsExplorer) GetView() *tview.TreeView {
 	return ft.view
 }
 
-func (ft *CollectionsExplorer) fileSelected(path string) {
-	fileContent, err := os.ReadFile(path)
-
-	if err != nil {
-		ft.logger.Error("error occurred", "err", err)
-	}
-
-	responseView.view.SetText(string(fileContent))
-}

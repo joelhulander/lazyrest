@@ -2,16 +2,18 @@ package ui
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
 )
 
 type RequestUrlBar struct {
+	ctx *appctx.Context
 	field *tview.InputField
 }
 
 var requestUrlBar *RequestUrlBar
 
-func NewRequestUrlBar(onEscape func()) *RequestUrlBar {
+func NewRequestUrlBar(ctx *appctx.Context) *RequestUrlBar {
 	field := tview.NewInputField()
 	field.
 		SetPlaceholder("Enter URL").
@@ -19,6 +21,7 @@ func NewRequestUrlBar(onEscape func()) *RequestUrlBar {
 
 
 	urlBar := &RequestUrlBar {
+		ctx: ctx,
 		field: field,
 	}
 
@@ -26,7 +29,7 @@ func NewRequestUrlBar(onEscape func()) *RequestUrlBar {
 	urlBar.field.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape:
-			onEscape()
+			ctx.FocusWorkspace()
 		}
 		return event
 	})

@@ -2,21 +2,22 @@ package ui
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
 )
 
 type WorkspaceGrid struct {
-	app           *tview.Application
+	ctx *appctx.Context
 	view          *tview.Grid
 	requestPanel  *RequestPanel
-	responseView  *ResponseView
+	responsePanel  *ResponsePanel
 	requestUrlBar *RequestUrlBar
 	methods       *MethodDropDown
 }
 
-func NewWorkspaceGrid(app *tview.Application,
+func NewWorkspaceGrid(ctx *appctx.Context,
 	dropDown *MethodDropDown, urlBar *RequestUrlBar,
-	requestPanel *RequestPanel, responseView *ResponseView) *WorkspaceGrid {
+	requestPanel *RequestPanel, responsePanel *ResponsePanel) *WorkspaceGrid {
 
 	flex := tview.NewFlex().AddItem(dropDown.view, 6, 1, false).AddItem(urlBar.field, 0, 1, false)
 
@@ -24,7 +25,7 @@ func NewWorkspaceGrid(app *tview.Application,
 		NewFlex().
 		SetDirection(0).
 		AddItem(requestPanel.view, 0, 1, false).
-		AddItem(responseView.view, 0, 1, false)
+		AddItem(responsePanel.view, 0, 1, false)
 
 	view := tview.NewGrid().
 		SetRows(2, 0).
@@ -34,17 +35,17 @@ func NewWorkspaceGrid(app *tview.Application,
 
 	view.
 		SetBorder(true).
-		SetTitle("[2] Workspace ").
+		SetTitle(" [2] Workspace ").
 		SetTitleAlign(0).
 		SetBorderPadding(1, 0, 1, 1)
 
 	grid := &WorkspaceGrid{
-		app:           app,
+		ctx: ctx,
 		view:          view,
 		methods:       dropDown,
 		requestUrlBar: requestUrlBar,
 		requestPanel:  requestPanel,
-		responseView:  responseView,
+		responsePanel:  responsePanel,
 	}
 
 	view.SetInputCapture(grid.inputCapture)
@@ -57,19 +58,10 @@ func (g *WorkspaceGrid) GetView() *tview.Grid {
 }
 
 func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
-	currentFocus := g.app.GetFocus()
+	log.Info("In workspace input capture")
+	currentFocus := g.ctx.App.GetFocus()
 
 	if currentFocus == g.methods.view || g.methods.view.IsOpen() {
-		return event
-	}
-
-	if currentFocus == g.requestPanel.view {
-		g.handleRequestPanelKeys(event)
-		return event
-	}
-
-	if currentFocus == g.responseView.view {
-		g.handleResponseViewerKeys(event)
 		return event
 	}
 
@@ -78,14 +70,14 @@ func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'i':
-				g.app.SetFocus(g.requestUrlBar.field)
+				g.ctx.App.SetFocus(g.requestUrlBar.field)
 				return nil
 			case 'm':
-				g.app.SetFocus(g.methods.view)
+				g.ctx.App.SetFocus(g.methods.view)
 				return nil
 			}
 		case tcell.KeyEnter:
-			g.app.SetFocus(g.requestPanel.view)
+			g.ctx.App.SetFocus(g.requestPanel.view)
 		case tcell.KeyUp:
 			return nil
 		case tcell.KeyDown:
@@ -99,27 +91,5 @@ func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	return event
 
-}
-
-func (g *WorkspaceGrid) handleRequestPanelKeys(event *tcell.EventKey) {
-	switch event.Key() {
-	case tcell.KeyTab:
-		g.app.SetFocus(g.responseView.view)
-	case tcell.KeyRune:
-		switch event.Rune() {
-		case 'p':
-			g.app.SetFocus(g.requestPanel.paramsButton)
-		case 'h':
-			g.app.SetFocus(g.requestPanel.headersButton)
-		}
-
-	}
-}
-
-func (g *WorkspaceGrid) handleResponseViewerKeys(event *tcell.EventKey) {
-	switch event.Key() {
-	case tcell.KeyTab:
-		g.app.SetFocus(g.requestPanel.view)
-	}
 }
 

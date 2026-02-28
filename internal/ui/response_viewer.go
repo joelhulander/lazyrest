@@ -2,39 +2,40 @@ package ui
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
 )
 
-type ResponseView struct {
-	view *tview.TextView
+type ResponsePanel struct {
+	view *tview.Flex
 }
 
-var responseView *ResponseView
+func NewResponsePanel(ctx *appctx.Context) *ResponsePanel {
+	view := tview.NewFlex()
 
-func NewResponseView(onEscape func ()) *ResponseView {
-	view := tview.NewTextView()
-
-	responseView := &ResponseView{
+	panel := &ResponsePanel{
 		view: view,
 	}
 
 	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
+		case tcell.KeyTab:
+			ctx.FocusRequestPanel()
 		case tcell.KeyEscape:
-			onEscape()
+			ctx.FocusWorkspace()
 		}
 		return event
 	})
 
-	view.SetTitle(" Response ").SetBorder(true)
+	view.SetTitle(" [4] Response ").SetTitleAlign(0).SetBorderPadding(1, 0, 1, 1).SetBorder(true)
 
 	view.SetFocusFunc(focusColorFunc(view.Box))
 	view.SetBlurFunc(blurColorFunc(view.Box))
 
-	return responseView
+	return panel
 }
 
-func (r *ResponseView) GetView() *tview.TextView {
+func (r *ResponsePanel) GetView() *tview.Flex {
 	return r.view
 }
 
