@@ -18,7 +18,7 @@ type App struct {
 
 func NewApp(rootDir string) *App {
 	var layout *ui.Layout
-	var explorer *ui.Layout
+	var explorer *ui.CollectionsExplorer
 	var requestPanel *ui.RequestPanel
 	var responsePanel *ui.ResponsePanel
 
@@ -71,16 +71,17 @@ func NewApp(rootDir string) *App {
 
 	ui.SetupStyle()
 
-	tree := ui.NewCollectionsExplorer(ctx, rootDir)
+	explorer = ui.NewCollectionsExplorer(ctx, rootDir)
 	urlBar := ui.NewRequestUrlBar(ctx)
 	requestPanel = ui.NewRequestPanel(ctx)
 	responsePanel = ui.NewResponsePanel(ctx)
 	dropDown := ui.NewMethodDropDown(ctx)
-	layout = ui.NewLayout(ctx, tree, dropDown, urlBar, requestPanel, responsePanel, logger)
+	workspaceGrid := ui.NewWorkspaceGrid(ctx, dropDown, urlBar, requestPanel, responsePanel)
+	layout = ui.NewLayout(explorer, workspaceGrid, logger)
 
 	app := &App{
 		ctx: ctx,
-		explorer: tree,
+		explorer: explorer,
 		requestPanel: requestPanel,
 		responsePanel: responsePanel,
 		layout: layout,

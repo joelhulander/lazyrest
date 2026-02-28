@@ -144,8 +144,12 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Rune() {
 			case '1':
 				p.ctx.FocusExplorer()
+				blurColorFunc(p.view.Box)()
+				return nil
 			case '2':
 				p.ctx.FocusWorkspace()
+				blurColorFunc(p.view.Box)()
+				return nil
 			case 'i':
 				p.ctx.FocusRequestPanelPage()
 				return nil
