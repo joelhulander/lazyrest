@@ -19,20 +19,14 @@ func NewLayout(explorer *CollectionsExplorer, workspaceGrid *WorkspaceGrid, logg
 
 	log = logger
 
-	layout = &Layout{
-		screenGrid: nil,
-		workspaceGrid: workspaceGrid.view,
-	}
-
-	layout.screenGrid = tview.NewGrid().
+	screenGrid := tview.NewGrid().
 		SetColumns(30, 0).
 		AddItem(explorer.view, 0, 0, 1, 1, 0, 0, false).
-		AddItem(layout.workspaceGrid, 0, 1, 1, 1, 0, 0, false)
+		AddItem(workspaceGrid.view, 0, 1, 1, 1, 0, 0, false)
 
-	layout.workspaceGrid.SetFocusFunc(focusColorFunc(layout.workspaceGrid.Box))
-	layout.workspaceGrid.SetBlurFunc(blurColorFunc(layout.workspaceGrid.Box))
-	explorer.view.SetFocusFunc(focusColorFunc(explorer.view.Box))
-	explorer.view.SetBlurFunc(blurColorFunc(explorer.view.Box))
+	layout = &Layout{
+		screenGrid: screenGrid,
+	}
 
 	return layout
 }

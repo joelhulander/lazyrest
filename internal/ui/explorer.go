@@ -51,6 +51,9 @@ func NewCollectionsExplorer(ctx *appctx.Context, rootDir string) *CollectionsExp
 	}
 
 	ft.view.SetSelectedFunc(ft.handleSelected)
+	ft.view.SetFocusFunc(focusColorFunc(ft.view.Box))
+	ft.view.SetBlurFunc(blurColorFunc(ft.view.Box))
+
 
 	explorer = ft
 

@@ -11,16 +11,14 @@ import (
 type App struct {
 	ctx *appctx.Context
 	explorer *ui.CollectionsExplorer
-	requestPanel *ui.RequestPanel
-	responsePanel *ui.ResponsePanel
+	workspaceGrid *ui.WorkspaceGrid
 	layout *ui.Layout
 }
 
 func NewApp(rootDir string) *App {
 	var layout *ui.Layout
 	var explorer *ui.CollectionsExplorer
-	var requestPanel *ui.RequestPanel
-	var responsePanel *ui.ResponsePanel
+	var workspaceGrid *ui.WorkspaceGrid
 
 	application := tview.NewApplication()
 	
@@ -29,24 +27,25 @@ func NewApp(rootDir string) *App {
 	}
 
 	focusWorkspaceGrid := func() {
-		application.SetFocus(layout.GetWorkspaceView())
+		application.SetFocus(workspaceGrid.GetView())
 	}
 
 	focusRequestPanelPage := func() {
-		pageName, _ := requestPanel.GetPages().GetFrontPage()
+		pageName, page := workspaceGrid.GetRequestPanel().GetPages().GetFrontPage()
 		switch pageName {
-		case "Params":
-			requestPanel.GetPages().GetPage(pageName).(*tview.Table).SetSelectable(true, true)
+		case "Params", "Headers":
+			table := page.(*tview.Table)
+			table.SetSelectable(true, true)
+			application.SetFocus(table)
 		}
-		application.SetFocus(requestPanel.GetPages())
 	}
 
 	focusResponsePanel := func() {
-		application.SetFocus(responsePanel.GetView())
+		application.SetFocus(workspaceGrid.GetResponsePanel().GetView())
 	}
 
 	focusRequestPanel := func() {
-		application.SetFocus(requestPanel.GetView())
+		application.SetFocus(workspaceGrid.GetRequestPanel().GetView())
 	}
 
 	onFileSelected := func (path string) {
@@ -72,18 +71,13 @@ func NewApp(rootDir string) *App {
 	ui.SetupStyle()
 
 	explorer = ui.NewCollectionsExplorer(ctx, rootDir)
-	urlBar := ui.NewRequestUrlBar(ctx)
-	requestPanel = ui.NewRequestPanel(ctx)
-	responsePanel = ui.NewResponsePanel(ctx)
-	dropDown := ui.NewMethodDropDown(ctx)
-	workspaceGrid := ui.NewWorkspaceGrid(ctx, dropDown, urlBar, requestPanel, responsePanel)
+	workspaceGrid = ui.NewWorkspaceGrid(ctx)
 	layout = ui.NewLayout(explorer, workspaceGrid, logger)
 
 	app := &App{
 		ctx: ctx,
 		explorer: explorer,
-		requestPanel: requestPanel,
-		responsePanel: responsePanel,
+		workspaceGrid: workspaceGrid,
 		layout: layout,
 	}
 
@@ -103,7 +97,20 @@ func (a *App) Run() error {
 func (a *App) SetKeybindings() {
 	a.ctx.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		currentFocus := a.ctx.App.GetFocus()
-		if currentFocus == a.requestPanel.GetView() || currentFocus == a.responsePanel.GetView() {
+
+		switch currentFocus.(type) {
+		case *tview.InputField:
+			return event
+		}
+
+		// switch currentFocus {
+		// case a.workspaceGrid.GetRequestPanel().GetView(), 
+		// 	a.workspaceGrid.GetResponsePanel().GetView(), 
+		// 	a.workspaceGrid.GetUrlBar().GetView(), (*tview.InputField):
+		// }
+
+
+		if a.workspaceGrid.GetRequestPanel().HasFocus() || a.workspaceGrid.GetResponsePanel().HasFocus() {
 			return event
 		}
 
@@ -113,11 +120,17 @@ func (a *App) SetKeybindings() {
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case '1':
+				logger.Info("Setting focus to explorer")
 				a.ctx.App.SetFocus(a.explorer.GetView())
 			case '2':
-				a.ctx.App.SetFocus(a.layout.GetWorkspaceView())
+				logger.Info("Setting focus to workspace")
+				a.ctx.App.SetFocus(a.workspaceGrid.GetView())
 			case '3':
-				a.ctx.App.SetFocus(a.requestPanel.GetView())
+				logger.Info("Setting focus to request panel")
+				a.ctx.App.SetFocus(a.workspaceGrid.GetRequestPanel().GetView())
+			case '4':
+				a.ctx.App.SetFocus(a.workspaceGrid.GetResponsePanel().GetView())
+				logger.Info("Setting focus to response panel")
 			}
 		}
 		return event
@@ -128,7 +141,7 @@ func (a *App) FocusNext() tview.Primitive {
 	currentFocus := a.ctx.App.GetFocus()
 
 	if currentFocus == a.explorer.GetView() {
-		return a.layout.GetWorkspaceView()
+		return a.workspaceGrid.GetView()
 	}
 
 	return a.explorer.GetView()

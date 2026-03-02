@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
@@ -27,8 +29,12 @@ func NewRequestUrlBar(ctx *appctx.Context) *RequestUrlBar {
 
 
 	urlBar.field.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		currentFocus := ctx.App.GetFocus()
+		log.Info("Current focus is on url bar", "type", fmt.Sprintf("%T", currentFocus))
 		switch event.Key() {
 		case tcell.KeyEscape:
+			ctx.FocusWorkspace()
+		case tcell.KeyEnter:
 			ctx.FocusWorkspace()
 		}
 		return event
@@ -45,6 +51,11 @@ func (bar *RequestUrlBar) SetText(text string) {
 
 func (bar *RequestUrlBar) GetText() string {
 	return bar.field.GetText()
+}
+
+func (bar *RequestUrlBar) HasFocus() bool {
+	f := bar.ctx.App.GetFocus()
+	return f == bar.field
 }
 
 func (bar *RequestUrlBar) GetView() tview.Primitive {

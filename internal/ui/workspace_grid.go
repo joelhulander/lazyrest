@@ -1,23 +1,27 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
 )
 
 type WorkspaceGrid struct {
-	ctx *appctx.Context
+	ctx           *appctx.Context
 	view          *tview.Grid
 	requestPanel  *RequestPanel
-	responsePanel  *ResponsePanel
+	responsePanel *ResponsePanel
 	requestUrlBar *RequestUrlBar
 	methods       *MethodDropDown
 }
 
-func NewWorkspaceGrid(ctx *appctx.Context,
-	dropDown *MethodDropDown, urlBar *RequestUrlBar,
-	requestPanel *RequestPanel, responsePanel *ResponsePanel) *WorkspaceGrid {
+func NewWorkspaceGrid(ctx *appctx.Context) *WorkspaceGrid {
+	urlBar := NewRequestUrlBar(ctx)
+	requestPanel := NewRequestPanel(ctx)
+	responsePanel := NewResponsePanel(ctx)
+	dropDown := NewMethodDropDown(ctx)
 
 	flex := tview.NewFlex().AddItem(dropDown.view, 6, 1, false).AddItem(urlBar.field, 0, 1, false)
 
@@ -40,14 +44,16 @@ func NewWorkspaceGrid(ctx *appctx.Context,
 		SetBorderPadding(1, 0, 1, 1)
 
 	grid := &WorkspaceGrid{
-		ctx: ctx,
+		ctx:           ctx,
 		view:          view,
 		methods:       dropDown,
-		requestUrlBar: requestUrlBar,
+		requestUrlBar: urlBar,
 		requestPanel:  requestPanel,
-		responsePanel:  responsePanel,
+		responsePanel: responsePanel,
 	}
 
+	view.SetFocusFunc(focusColorFunc(view.Box))
+	view.SetBlurFunc(blurColorFunc(view.Box))
 	view.SetInputCapture(grid.inputCapture)
 
 	return grid
@@ -57,39 +63,61 @@ func (g *WorkspaceGrid) GetView() *tview.Grid {
 	return g.view
 }
 
-func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
-	log.Info("In workspace input capture")
-	currentFocus := g.ctx.App.GetFocus()
+func (g *WorkspaceGrid) GetRequestPanel() *RequestPanel {
+	return g.requestPanel
+}
 
-	if currentFocus == g.methods.view || g.methods.view.IsOpen() {
+func (g *WorkspaceGrid) GetResponsePanel() *ResponsePanel {
+	return g.responsePanel
+}
+
+func (g *WorkspaceGrid) GetUrlBar() *RequestUrlBar{
+	return g.requestUrlBar
+}
+
+func (g *WorkspaceGrid) GetMethodsDropdown() *MethodDropDown {
+	return g.methods
+}
+
+func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
+	currentFocus := g.ctx.App.GetFocus()
+	log.Info("Current focus is on workspace", "type", fmt.Sprintf("%T", currentFocus))
+
+	switch currentFocus.(type) {
+	case *tview.InputField:
 		return event
 	}
 
-	if currentFocus == g.view {
-		switch event.Key() {
-		case tcell.KeyRune:
-			switch event.Rune() {
-			case 'i':
-				g.ctx.App.SetFocus(g.requestUrlBar.field)
-				return nil
-			case 'm':
-				g.ctx.App.SetFocus(g.methods.view)
-				return nil
-			}
-		case tcell.KeyEnter:
-			g.ctx.App.SetFocus(g.requestPanel.view)
-		case tcell.KeyUp:
+	if g.requestPanel.HasFocus() || g.responsePanel.HasFocus() || g.methods.HasFocusOrIsOpen() || g.requestUrlBar.HasFocus() {
+		return event
+	}
+
+	switch event.Key() {
+	case tcell.KeyRune:
+		switch event.Rune() {
+		case 'i':
+			log.Info("Setting focus to url bar")
+			g.ctx.App.SetFocus(g.requestUrlBar.field)
 			return nil
-		case tcell.KeyDown:
-			return nil
-		case tcell.KeyRight:
-			return nil
-		case tcell.KeyLeft:
+		case 'm':
+			log.Info("Setting focus to methods dropdown")
+			g.ctx.App.SetFocus(g.methods.view)
 			return nil
 		}
+	case tcell.KeyEnter:
+		log.Info("Setting focus to request panel")
+		g.ctx.App.SetFocus(g.requestPanel.view)
+		return nil
+	case tcell.KeyUp:
+		return nil
+	case tcell.KeyDown:
+		return nil
+	case tcell.KeyRight:
+		return nil
+	case tcell.KeyLeft:
+		return nil
 	}
 
 	return event
 
 }
-

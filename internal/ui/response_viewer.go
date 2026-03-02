@@ -7,6 +7,7 @@ import (
 )
 
 type ResponsePanel struct {
+	ctx *appctx.Context
 	view *tview.Flex
 }
 
@@ -14,6 +15,7 @@ func NewResponsePanel(ctx *appctx.Context) *ResponsePanel {
 	view := tview.NewFlex()
 
 	panel := &ResponsePanel{
+		ctx:  ctx,
 		view: view,
 	}
 
@@ -23,6 +25,18 @@ func NewResponsePanel(ctx *appctx.Context) *ResponsePanel {
 			ctx.FocusRequestPanel()
 		case tcell.KeyEscape:
 			ctx.FocusWorkspace()
+		case tcell.KeyRune:
+			switch event.Rune() {
+			case '1':
+				ctx.FocusExplorer()
+				return nil
+			case '2':
+				ctx.FocusWorkspace()
+				return nil
+			case '3':
+				ctx.FocusRequestPanel()
+				return nil
+			}
 		}
 		return event
 	})
@@ -34,6 +48,12 @@ func NewResponsePanel(ctx *appctx.Context) *ResponsePanel {
 
 	return panel
 }
+
+func (p *ResponsePanel) HasFocus() bool {
+	f := p.ctx.App.GetFocus()
+	return f == p.view 
+}
+
 
 func (r *ResponsePanel) GetView() *tview.Flex {
 	return r.view

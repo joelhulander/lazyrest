@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
@@ -25,11 +27,13 @@ func NewMethodDropDown(ctx *appctx.Context) *MethodDropDown {
 	}
 
 	dropDown.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		currentFocus := ctx.App.GetFocus()
+		log.Info("Current focus is on methods dropdown", "type", fmt.Sprintf("%T", currentFocus))
 		switch event.Key() {
 		case tcell.KeyEscape:
 			ctx.FocusWorkspace()
 		case tcell.KeyEnter:
-			return event
+			ctx.FocusWorkspace()
 		case tcell.KeyUp:
 			return event
 		case tcell.KeyDown:
@@ -46,6 +50,11 @@ func NewMethodDropDown(ctx *appctx.Context) *MethodDropDown {
 
 
 	return dropDown
+}
+
+func (d *MethodDropDown) HasFocusOrIsOpen() bool {
+	f := d.ctx.App.GetFocus()
+	return f == d.view || d.view.IsOpen()
 }
 
 func (d *MethodDropDown) GetView() *tview.DropDown {
