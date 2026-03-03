@@ -4,15 +4,16 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
-	"github.com/joelhulander/lazyrest/internal/ui"
 	"github.com/joelhulander/lazyrest/internal/appctx"
+	"github.com/joelhulander/lazyrest/internal/client"
+	"github.com/joelhulander/lazyrest/internal/ui"
 )
 
 type App struct {
-	ctx *appctx.Context
-	explorer *ui.CollectionsExplorer
+	ctx           *appctx.Context
+	explorer      *ui.CollectionsExplorer
 	workspaceGrid *ui.WorkspaceGrid
-	layout *ui.Layout
+	layout        *ui.Layout
 }
 
 func NewApp(rootDir string) *App {
@@ -21,7 +22,7 @@ func NewApp(rootDir string) *App {
 	var workspaceGrid *ui.WorkspaceGrid
 
 	application := tview.NewApplication()
-	
+
 	focusExplorer := func() {
 		application.SetFocus(explorer.GetView())
 	}
@@ -48,7 +49,7 @@ func NewApp(rootDir string) *App {
 		application.SetFocus(workspaceGrid.GetRequestPanel().GetView())
 	}
 
-	onFileSelected := func (path string) {
+	onFileSelected := func(path string) {
 		// fileContent, err := os.ReadFile(path)
 
 		// if err != nil {
@@ -58,8 +59,11 @@ func NewApp(rootDir string) *App {
 		// responsePanel.GetView().SetText(string(fileContent), false)
 	}
 
+	client := client.NewClient()
+
 	ctx := &appctx.Context{
 		App:                   application,
+		Client:                client,
 		Logger:                logger,
 		FocusWorkspace:        focusWorkspaceGrid,
 		FocusRequestPanelPage: focusRequestPanelPage,
@@ -76,10 +80,10 @@ func NewApp(rootDir string) *App {
 	layout = ui.NewLayout(explorer, workspaceGrid)
 
 	app := &App{
-		ctx: ctx,
-		explorer: explorer,
+		ctx:           ctx,
+		explorer:      explorer,
 		workspaceGrid: workspaceGrid,
-		layout: layout,
+		layout:        layout,
 	}
 
 	return app
@@ -106,11 +110,10 @@ func (a *App) SetKeybindings() {
 		}
 
 		// switch currentFocus {
-		// case a.workspaceGrid.GetRequestPanel().GetView(), 
-		// 	a.workspaceGrid.GetResponsePanel().GetView(), 
+		// case a.workspaceGrid.GetRequestPanel().GetView(),
+		// 	a.workspaceGrid.GetResponsePanel().GetView(),
 		// 	a.workspaceGrid.GetUrlBar().GetView(), (*tview.InputField):
 		// }
-
 
 		if a.workspaceGrid.GetRequestPanel().HasFocus() || a.workspaceGrid.GetResponsePanel().HasFocus() {
 			return event
@@ -144,4 +147,3 @@ func (a *App) FocusNext() tview.Primitive {
 
 	return a.explorer.GetView()
 }
-
