@@ -47,7 +47,7 @@ func NewCollectionsExplorer(ctx *appctx.Context, rootDir string) *CollectionsExp
 
 	_, err := ft.addChildren(ft.root, ft.rootDir)
 	if err != nil {
-		log.Error("error occurred", "err", err)
+		ft.ctx.Logger.Error("failed to load collections", "err", err)
 	}
 
 	ft.view.SetSelectedFunc(ft.handleSelected)
@@ -117,6 +117,7 @@ func (ft *CollectionsExplorer) handleSelected(node *tview.TreeNode) {
 	}
 
 	node.SetSelectedFunc(func() {
+		ft.ctx.Logger.Info("file selected", "path", reference.path)
 		ft.ctx.OnFileSelected(reference.path)
 	})
 }

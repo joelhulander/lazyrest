@@ -1,24 +1,18 @@
 package ui
 
 import (
-	"log/slog"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type Layout struct {
-	screenGrid *tview.Grid
+	screenGrid    *tview.Grid
 	workspaceGrid *tview.Grid
 }
 
-var log *slog.Logger
 var layout *Layout
 
-func NewLayout(explorer *CollectionsExplorer, workspaceGrid *WorkspaceGrid, logger *slog.Logger) *Layout {
-
-	log = logger
-
+func NewLayout(explorer *CollectionsExplorer, workspaceGrid *WorkspaceGrid) *Layout {
 	screenGrid := tview.NewGrid().
 		SetColumns(30, 0).
 		AddItem(explorer.view, 0, 0, 1, 1, 0, 0, false).

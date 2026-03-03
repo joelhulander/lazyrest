@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -12,10 +11,10 @@ var file *os.File
 var logger *slog.Logger
 
 func Setup() {
-	logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	file = newLogFile("app.log")
+	logger = slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	if _, ok := os.LookupEnv("DEBUG"); ok {
-		file = newLogFile("app.log")
-		logger = slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{ Level: slog.LevelDebug }))
+		logger = slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
 }
 

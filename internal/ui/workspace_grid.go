@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
@@ -81,7 +79,6 @@ func (g *WorkspaceGrid) GetMethodsDropdown() *MethodDropDown {
 
 func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	currentFocus := g.ctx.App.GetFocus()
-	log.Info("Current focus is on workspace", "type", fmt.Sprintf("%T", currentFocus))
 
 	switch currentFocus.(type) {
 	case *tview.InputField:
@@ -96,16 +93,13 @@ func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case tcell.KeyRune:
 		switch event.Rune() {
 		case 'i':
-			log.Info("Setting focus to url bar")
 			g.ctx.App.SetFocus(g.requestUrlBar.field)
 			return nil
 		case 'm':
-			log.Info("Setting focus to methods dropdown")
 			g.ctx.App.SetFocus(g.methods.view)
 			return nil
 		}
 	case tcell.KeyEnter:
-		log.Info("Setting focus to request panel")
 		g.ctx.App.SetFocus(g.requestPanel.view)
 		return nil
 	case tcell.KeyUp:

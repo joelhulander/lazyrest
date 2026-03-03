@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
@@ -15,14 +13,10 @@ type RequestPanel struct {
 	buttons       []*tview.Button
 	paramsButton  *tview.Button
 	headersButton *tview.Button
-	paramsPage    *tview.Table
-	headersPage   *tview.Table
 }
 
 func NewRequestPanel(ctx *appctx.Context) *RequestPanel {
-	parent := tview.NewFlex().SetDirection(0)
-	parent.SetBorder(true)
-	parent.SetTitle(" [3] Request ").SetTitleAlign(0).SetBorderPadding(1, 0, 1, 1)
+	parent := newParent()
 	pages := tview.NewPages()
 
 	panel := &RequestPanel{
@@ -31,33 +25,43 @@ func NewRequestPanel(ctx *appctx.Context) *RequestPanel {
 		pages: pages,
 	}
 
-	paramsButton, headersButton := panel.NewButtons()
+	paramsButton, headersButton := panel.newButtons()
 
 	buttonsFlex := tview.NewFlex().AddItem(paramsButton, 0, 1, false).AddItem(headersButton, 0, 1, false)
 	buttonsFlex.SetDirection(1)
 
-	paramsTable := panel.NewTable()
-	headersTable := panel.NewTable()
+	paramsTable := panel.newTable()
+	headersTable := panel.newTable()
 
 	panel.buttons = append(panel.buttons, paramsButton, headersButton)
-	panel.paramsPage = paramsTable
-	panel.headersPage = headersTable
-
 	panel.setActiveButton(paramsButton)
-	pages.SetBorderPadding(1, 1, 1, 1)
-	pages.AddPage("Params", paramsTable, true, true)
-	pages.AddPage("Headers", headersTable, true, false)
-	pages.SwitchToPage("Params")
+
+	panel.setupPages(paramsTable, headersTable)
 
 	parent.AddItem(buttonsFlex, 1, 1, false).AddItem(pages, 0, 1, false)
-	parent.SetFocusFunc(focusColorFunc(parent.Box))
-	parent.SetBlurFunc(blurColorFunc(parent.Box))
 	parent.SetInputCapture(panel.inputCapture)
 
 	return panel
 }
 
-func (p *RequestPanel) NewTable() *tview.Table {
+func newParent() *tview.Flex {
+	parent := tview.NewFlex().SetDirection(0)
+	parent.SetBorder(true)
+	parent.SetTitle(" [3] Request ").SetTitleAlign(0).SetBorderPadding(1, 0, 1, 1)
+	parent.SetFocusFunc(focusColorFunc(parent.Box))
+	parent.SetBlurFunc(blurColorFunc(parent.Box))
+
+	return parent
+}
+
+func (p *RequestPanel) setupPages(paramsTable *tview.Table, headersTable *tview.Table) {
+	p.pages.SetBorderPadding(1, 1, 1, 1)
+	p.pages.AddPage("Params", paramsTable, true, true)
+	p.pages.AddPage("Headers", headersTable, true, false)
+	p.pages.SwitchToPage("Params")
+}
+
+func (p *RequestPanel) newTable() *tview.Table {
 	table := tview.NewTable()
 	table.SetFixed(1, 1)
 
@@ -75,7 +79,10 @@ func (p *RequestPanel) NewTable() *tview.Table {
 		input.SetLabel("New value: ")
 		input.SetDoneFunc(func(key tcell.Key) {
 			if key == tcell.KeyEnter {
-				table.GetCell(row, column).SetText(input.GetText()).SetStyle(tcell.Style{}.Foreground(tcell.ColorWhite))
+				oldValue := table.GetCell(row, column).Text
+				newValue := input.GetText()
+				table.GetCell(row, column).SetText(newValue).SetStyle(tcell.Style{}.Foreground(tcell.ColorWhite))
+				p.ctx.Logger.Info("cell edited", "row", row, "col", column, "old", oldValue, "new", newValue)
 			}
 			p.view.RemoveItem(input)
 			p.ctx.FocusRequestPanelPage()
@@ -100,7 +107,6 @@ func (p *RequestPanel) setActiveButton(button *tview.Button) {
 
 func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	currentFocus := p.ctx.App.GetFocus()
-	log.Info("Current focus is on request panel", "type", fmt.Sprintf("%T", currentFocus))
 
 	_, frontPage := p.pages.GetFrontPage()
 	table, isTable := frontPage.(*tview.Table)
@@ -115,6 +121,7 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			p.ctx.App.SetFocus(p.view)
 			return nil
 		}
+		return event
 
 	case p.view:
 		switch event.Key() {
@@ -135,10 +142,12 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			case 'p':
 				p.setActiveButton(p.paramsButton)
 				p.pages.SwitchToPage("Params")
+				p.ctx.Logger.Debug("request tab switched", "tab", "params")
 				return nil
 			case 'h':
 				p.setActiveButton(p.headersButton)
 				p.pages.SwitchToPage("Headers")
+				p.ctx.Logger.Debug("request tab switched", "tab", "headers")
 				return nil
 			}
 		case tcell.KeyTab:
@@ -153,7 +162,7 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (p *RequestPanel) NewButtons() (params *tview.Button, headers *tview.Button) {
+func (p *RequestPanel) newButtons() (params *tview.Button, headers *tview.Button) {
 	params = tview.NewButton("Params")
 	headers = tview.NewButton("Headers")
 	p.paramsButton = params
@@ -163,7 +172,7 @@ func (p *RequestPanel) NewButtons() (params *tview.Button, headers *tview.Button
 
 func (p *RequestPanel) HasFocus() bool {
 	f := p.ctx.App.GetFocus()
-	return f == p.view || f == p.pages || f == p.paramsPage || f == p.headersPage
+	return f == p.view || f == p.pages
 }
 
 func (p *RequestPanel) GetPages() *tview.Pages {

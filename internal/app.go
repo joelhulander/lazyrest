@@ -58,8 +58,9 @@ func NewApp(rootDir string) *App {
 		// responsePanel.GetView().SetText(string(fileContent), false)
 	}
 
-	ctx := &appctx.Context {
+	ctx := &appctx.Context{
 		App:                   application,
+		Logger:                logger,
 		FocusWorkspace:        focusWorkspaceGrid,
 		FocusRequestPanelPage: focusRequestPanelPage,
 		FocusResponsePanel:    focusResponsePanel,
@@ -72,7 +73,7 @@ func NewApp(rootDir string) *App {
 
 	explorer = ui.NewCollectionsExplorer(ctx, rootDir)
 	workspaceGrid = ui.NewWorkspaceGrid(ctx)
-	layout = ui.NewLayout(explorer, workspaceGrid, logger)
+	layout = ui.NewLayout(explorer, workspaceGrid)
 
 	app := &App{
 		ctx: ctx,
@@ -85,6 +86,7 @@ func NewApp(rootDir string) *App {
 }
 
 func (a *App) Run() error {
+	a.ctx.Logger.Info("starting lazyrest")
 	a.ctx.App.
 		EnableMouse(true).
 		SetTitle("lazyrest").
@@ -120,17 +122,13 @@ func (a *App) SetKeybindings() {
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case '1':
-				logger.Info("Setting focus to explorer")
 				a.ctx.App.SetFocus(a.explorer.GetView())
 			case '2':
-				logger.Info("Setting focus to workspace")
 				a.ctx.App.SetFocus(a.workspaceGrid.GetView())
 			case '3':
-				logger.Info("Setting focus to request panel")
 				a.ctx.App.SetFocus(a.workspaceGrid.GetRequestPanel().GetView())
 			case '4':
 				a.ctx.App.SetFocus(a.workspaceGrid.GetResponsePanel().GetView())
-				logger.Info("Setting focus to response panel")
 			}
 		}
 		return event

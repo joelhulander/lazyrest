@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
 	"github.com/rivo/tview"
@@ -14,21 +12,26 @@ type MethodDropDown struct {
 }
 
 func NewMethodDropDown(ctx *appctx.Context) *MethodDropDown {
-	view := tview.NewDropDown().AddOption(" GET ", nil).AddOption(" POST ", nil).AddOption(" PUT ", nil).SetCurrentOption(0)
+	view := tview.NewDropDown().
+		AddOption(" GET ", nil).
+		AddOption(" POST ", nil).
+		AddOption(" PUT ", nil).
+		SetCurrentOption(0)
+	view.SetSelectedFunc(func(method string, _ int) {
+		ctx.Logger.Info("method changed", "method", method)
+	})
 	view.SetFieldBackgroundColor(tcell.ColorPurple).SetFieldTextColor(tcell.ColorBlack)
 
 	selectedStyle := tcell.Style{}
 	unselectedStyle := tcell.Style{}
 	view.SetListStyles(unselectedStyle.Background(tcell.ColorGray).Foreground(tcell.ColorBlack), selectedStyle.Background(tcell.ColorRed).Foreground(tcell.ColorBlack))
 
-	dropDown := &MethodDropDown {
-		ctx: ctx,
+	dropDown := &MethodDropDown{
+		ctx:  ctx,
 		view: view,
 	}
 
 	dropDown.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		currentFocus := ctx.App.GetFocus()
-		log.Info("Current focus is on methods dropdown", "type", fmt.Sprintf("%T", currentFocus))
 		switch event.Key() {
 		case tcell.KeyEscape:
 			ctx.FocusWorkspace()
