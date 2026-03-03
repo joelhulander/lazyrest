@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"net/url"
+	"strings"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
@@ -59,6 +62,18 @@ func NewApp(rootDir string) *App {
 		// responsePanel.GetView().SetText(string(fileContent), false)
 	}
 
+	syncUrlParams := func() {
+		baseUrl := workspaceGrid.GetUrlBar().GetText()
+		if baseUrl == "" {
+			return
+		}
+
+		baseUrl = stripQueryParams(baseUrl)
+		params := buildQueryString(workspaceGrid.GetRequestPanel().GetParams())
+
+		workspaceGrid.GetUrlBar().SetText(baseUrl + params)
+	}
+
 	client := client.NewClient()
 
 	ctx := &appctx.Context{
@@ -71,6 +86,7 @@ func NewApp(rootDir string) *App {
 		FocusRequestPanel:     focusRequestPanel,
 		FocusExplorer:         focusExplorer,
 		OnFileSelected:        onFileSelected,
+		SyncUrlParams:         syncUrlParams,
 	}
 
 	ui.SetupStyle()
@@ -109,12 +125,6 @@ func (a *App) SetKeybindings() {
 			return event
 		}
 
-		// switch currentFocus {
-		// case a.workspaceGrid.GetRequestPanel().GetView(),
-		// 	a.workspaceGrid.GetResponsePanel().GetView(),
-		// 	a.workspaceGrid.GetUrlBar().GetView(), (*tview.InputField):
-		// }
-
 		if a.workspaceGrid.GetRequestPanel().HasFocus() || a.workspaceGrid.GetResponsePanel().HasFocus() {
 			return event
 		}
@@ -146,4 +156,33 @@ func (a *App) FocusNext() tview.Primitive {
 	}
 
 	return a.explorer.GetView()
+}
+
+func stripQueryParams(baseUrl string) string {
+	u, err := url.Parse(baseUrl)
+	if err != nil {
+		logger.Error("error while parsing url", "err", err)
+	}
+	u.RawQuery = ""
+
+	return u.String()
+}
+
+func buildQueryString(params map[string]string) string {
+	sb := strings.Builder{}
+
+	first := true
+	for k, v := range params {
+		if first {
+			sb.WriteString("?")
+		} else {
+			sb.WriteString("&")
+		}
+		sb.WriteString(url.QueryEscape(k))
+		sb.WriteString("=")
+		sb.WriteString(url.QueryEscape(v))
+		first = false
+	}
+
+	return sb.String()
 }

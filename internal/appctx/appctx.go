@@ -9,7 +9,7 @@ import (
 
 type Context struct {
 	App                   *tview.Application
-	Client *client.Client
+	Client                *client.Client
 	Logger                *slog.Logger
 	FocusWorkspace        func()
 	FocusRequestPanel     func()
@@ -17,5 +17,5 @@ type Context struct {
 	FocusRequestPanelPage func()
 	FocusExplorer         func()
 	OnFileSelected        func(path string)
+	SyncUrlParams         func()
 }
-

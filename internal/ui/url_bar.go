@@ -33,6 +33,7 @@ func NewRequestUrlBar(ctx *appctx.Context) *RequestUrlBar {
 			ctx.FocusWorkspace()
 		case tcell.KeyEnter:
 			ctx.Logger.Info("url submitted", "url", urlBar.field.GetText())
+			ctx.SyncUrlParams()
 			ctx.FocusWorkspace()
 		}
 		return event

@@ -73,6 +73,9 @@ func (p *RequestPanel) getTableData(table *tview.Table) map[string]string {
 	data := map[string]string{}
 
 	for i := range table.GetRowCount() {
+		if i == 0 {
+			continue
+		}
 		name := table.GetCell(i, 0).Text
 		if name == "" {
 			continue
@@ -112,6 +115,7 @@ func (p *RequestPanel) newTable() *tview.Table {
 				oldValue := table.GetCell(row, column).Text
 				newValue := input.GetText()
 				table.GetCell(row, column).SetText(newValue).SetStyle(tcell.Style{}.Foreground(tcell.ColorWhite))
+				p.syncParamsToUrl()
 				p.ctx.Logger.Info("cell edited", "row", row, "col", column, "old", oldValue, "new", newValue)
 			}
 			p.view.RemoveItem(input)
@@ -125,6 +129,10 @@ func (p *RequestPanel) newTable() *tview.Table {
 	table.SetBlurFunc(blurColorFunc(p.view.Box))
 
 	return table
+}
+
+func (p *RequestPanel) syncParamsToUrl() {
+	p.ctx.SyncUrlParams()
 }
 
 func (p *RequestPanel) setActiveButton(button *tview.Button) {
@@ -164,15 +172,22 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			case 'a':
 				rowCount := table.GetRowCount()
 				p.ctx.Logger.Info("add row", "count", rowCount)
-				newRow(table, rowCount)
+				p.newRow(table, rowCount)
 				table.Select(rowCount, 0)
+				p.syncParamsToUrl()
 				return nil
 			case 'd':
 				row, _ := table.GetSelection()
+				p.ctx.Logger.Info("selected row", "row", row)
 				table.RemoveRow(row)
-				if table.GetRowCount() == 1 {
+				rowCount := table.GetRowCount()
+				if row == rowCount {
+					table.Select(rowCount - 1, 0)
+				}
+				if rowCount == 1 {
 					p.ctx.FocusRequestPanel()
 				}
+				p.syncParamsToUrl()
 				return nil
 			}
 		}
@@ -200,9 +215,10 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			case 'a':
 				rowCount := table.GetRowCount()
 				p.ctx.Logger.Info("add row", "count", rowCount)
-				newRow(table, rowCount)
+				p.newRow(table, rowCount)
 				p.ctx.FocusRequestPanelPage()
 				table.Select(rowCount, 0)
+				p.syncParamsToUrl()
 				return nil
 			case 'p':
 				p.setActiveButton(p.paramsButton)
@@ -227,7 +243,7 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func newRow(table *tview.Table, rowCount int) {
+func (p *RequestPanel) newRow(table *tview.Table, rowCount int) {
 	table.SetCell(rowCount, 0, tview.NewTableCell("").
 		SetStyle(tcell.Style{}.Foreground(tcell.ColorGray)).
 		SetSelectedStyle(tcell.Style{}.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)))
