@@ -13,6 +13,8 @@ type RequestPanel struct {
 	buttons       []*tview.Button
 	paramsButton  *tview.Button
 	headersButton *tview.Button
+	paramsTable   *tview.Table
+	headersTable  *tview.Table
 }
 
 func NewRequestPanel(ctx *appctx.Context) *RequestPanel {
@@ -34,6 +36,8 @@ func NewRequestPanel(ctx *appctx.Context) *RequestPanel {
 	headersTable := panel.newTable()
 
 	panel.buttons = append(panel.buttons, paramsButton, headersButton)
+	panel.paramsTable = paramsTable
+	panel.headersTable = headersTable
 	panel.setActiveButton(paramsButton)
 
 	panel.setupPages(paramsTable, headersTable)
@@ -44,39 +48,65 @@ func NewRequestPanel(ctx *appctx.Context) *RequestPanel {
 	return panel
 }
 
-func newParent() *tview.Flex {
-	parent := tview.NewFlex().SetDirection(0)
-	parent.SetBorder(true)
-	parent.SetTitle(" [3] Request ").SetTitleAlign(0).SetBorderPadding(1, 0, 1, 1)
-	parent.SetFocusFunc(focusColorFunc(parent.Box))
-	parent.SetBlurFunc(blurColorFunc(parent.Box))
-
-	return parent
+func (p *RequestPanel) GetPages() *tview.Pages {
+	return p.pages
 }
 
-func (p *RequestPanel) setupPages(paramsTable *tview.Table, headersTable *tview.Table) {
-	p.pages.SetBorderPadding(1, 1, 1, 1)
-	p.pages.AddPage("Params", paramsTable, true, true)
-	p.pages.AddPage("Headers", headersTable, true, false)
-	p.pages.SwitchToPage("Params")
+func (p *RequestPanel) GetView() *tview.Flex {
+	return p.view
+}
+
+func (p *RequestPanel) HasFocus() bool {
+	f := p.ctx.App.GetFocus()
+	return f == p.view || f == p.pages || f == p.paramsTable || f == p.headersTable
+}
+
+func (p *RequestPanel) GetParams() map[string]string {
+	return p.getTableData(p.paramsTable)
+}
+
+func (p *RequestPanel) GetHeaders() map[string]string {
+	return p.getTableData(p.headersTable)
+}
+
+func (p *RequestPanel) getTableData(table *tview.Table) map[string]string {
+	data := map[string]string{}
+
+	for i := range table.GetRowCount() {
+		name := table.GetCell(i, 0).Text
+		if name == "" {
+			continue
+		}
+		data[name] = table.GetCell(i, 1).Text
+	}
+
+	return data
+
+}
+
+func (p *RequestPanel) newButtons() (params *tview.Button, headers *tview.Button) {
+	params = tview.NewButton("Params")
+	headers = tview.NewButton("Headers")
+	p.paramsButton = params
+	p.headersButton = headers
+	return
 }
 
 func (p *RequestPanel) newTable() *tview.Table {
 	table := tview.NewTable()
 	table.SetFixed(1, 1)
 
-	table.SetCell(0, 0, &tview.TableCell{Text: "Name", Color: tcell.ColorRed, NotSelectable: true, Expansion: 1})
+	table.SetCell(0, 0, &tview.TableCell{Text: "Key", Color: tcell.ColorRed, NotSelectable: true, Expansion: 1})
 	table.SetCell(0, 1, &tview.TableCell{Text: "Value", Color: tcell.ColorRed, NotSelectable: true, Expansion: 1})
-	table.SetCell(1, 0, tview.NewTableCell("Name").
-		SetStyle(tcell.Style{}.Foreground(tcell.ColorGray)).
-		SetSelectedStyle(tcell.Style{}.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)))
-	table.SetCell(1, 1, tview.NewTableCell("Value").
-		SetStyle(tcell.Style{}.Foreground(tcell.ColorGray)).
-		SetSelectedStyle(tcell.Style{}.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)))
 
 	table.SetSelectedFunc(func(row int, column int) {
 		input := tview.NewInputField()
-		input.SetLabel("New value: ")
+		if column == 0 {
+			input.SetLabel("New key: ")
+		} else {
+			input.SetLabel("New value: ")
+		}
+
 		input.SetDoneFunc(func(key tcell.Key) {
 			if key == tcell.KeyEnter {
 				oldValue := table.GetCell(row, column).Text
@@ -105,6 +135,13 @@ func (p *RequestPanel) setActiveButton(button *tview.Button) {
 	button.SetActivatedStyle(tcell.Style{}.Foreground(tcell.ColorBlack).Background(tcell.ColorPurple))
 }
 
+func (p *RequestPanel) setupPages(paramsTable *tview.Table, headersTable *tview.Table) {
+	p.pages.SetBorderPadding(1, 1, 1, 1)
+	p.pages.AddPage("Params", paramsTable, true, true)
+	p.pages.AddPage("Headers", headersTable, true, false)
+	p.pages.SwitchToPage("Params")
+}
+
 func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	currentFocus := p.ctx.App.GetFocus()
 
@@ -120,6 +157,24 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			}
 			p.ctx.App.SetFocus(p.view)
 			return nil
+		case tcell.KeyTab:
+
+		case tcell.KeyRune:
+			switch event.Rune() {
+			case 'a':
+				rowCount := table.GetRowCount()
+				p.ctx.Logger.Info("add row", "count", rowCount)
+				newRow(table, rowCount)
+				table.Select(rowCount, 0)
+				return nil
+			case 'd':
+				row, _ := table.GetSelection()
+				table.RemoveRow(row)
+				if table.GetRowCount() == 1 {
+					p.ctx.FocusRequestPanel()
+				}
+				return nil
+			}
 		}
 		return event
 
@@ -137,7 +192,17 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 				p.ctx.FocusResponsePanel()
 				return nil
 			case 'i':
+				if table.GetRowCount() == 1 {
+					return nil
+				}
 				p.ctx.FocusRequestPanelPage()
+				return nil
+			case 'a':
+				rowCount := table.GetRowCount()
+				p.ctx.Logger.Info("add row", "count", rowCount)
+				newRow(table, rowCount)
+				p.ctx.FocusRequestPanelPage()
+				table.Select(rowCount, 0)
 				return nil
 			case 'p':
 				p.setActiveButton(p.paramsButton)
@@ -162,23 +227,21 @@ func (p *RequestPanel) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (p *RequestPanel) newButtons() (params *tview.Button, headers *tview.Button) {
-	params = tview.NewButton("Params")
-	headers = tview.NewButton("Headers")
-	p.paramsButton = params
-	p.headersButton = headers
-	return
+func newRow(table *tview.Table, rowCount int) {
+	table.SetCell(rowCount, 0, tview.NewTableCell("").
+		SetStyle(tcell.Style{}.Foreground(tcell.ColorGray)).
+		SetSelectedStyle(tcell.Style{}.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)))
+	table.SetCell(rowCount, 1, tview.NewTableCell("").
+		SetStyle(tcell.Style{}.Foreground(tcell.ColorGray)).
+		SetSelectedStyle(tcell.Style{}.Background(tcell.ColorGreen).Foreground(tcell.ColorBlack)))
 }
 
-func (p *RequestPanel) HasFocus() bool {
-	f := p.ctx.App.GetFocus()
-	return f == p.view || f == p.pages
-}
+func newParent() *tview.Flex {
+	parent := tview.NewFlex().SetDirection(0)
+	parent.SetBorder(true)
+	parent.SetTitle(" [3] Request ").SetTitleAlign(0).SetBorderPadding(1, 0, 1, 1)
+	parent.SetFocusFunc(focusColorFunc(parent.Box))
+	parent.SetBlurFunc(blurColorFunc(parent.Box))
 
-func (p *RequestPanel) GetPages() *tview.Pages {
-	return p.pages
-}
-
-func (p *RequestPanel) GetView() *tview.Flex {
-	return p.view
+	return parent
 }
