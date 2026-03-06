@@ -9,6 +9,7 @@ import (
 type ResponsePanel struct {
 	ctx *appctx.Context
 	view *tview.Flex
+	textView *tview.TextView
 }
 
 func NewResponsePanel(ctx *appctx.Context) *ResponsePanel {
@@ -18,6 +19,12 @@ func NewResponsePanel(ctx *appctx.Context) *ResponsePanel {
 		ctx:  ctx,
 		view: view,
 	}
+
+	textView := tview.NewTextView()
+
+	panel.textView = textView
+
+	view.AddItem(textView, 0, 1, false)
 
 	view.SetInputCapture(panel.inputCapture)
 

@@ -3,6 +3,7 @@ package ui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/joelhulander/lazyrest/internal/appctx"
+	"github.com/joelhulander/lazyrest/internal/client"
 	"github.com/rivo/tview"
 )
 
@@ -100,7 +101,24 @@ func (g *WorkspaceGrid) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 	case tcell.KeyEnter:
-		g.ctx.App.SetFocus(g.requestPanel.view)
+		url := g.requestUrlBar.GetText()
+		_, method := g.methods.view.GetCurrentOption()
+
+		request := client.Request {
+			URL: url, 
+			Method: method,
+		}
+
+		resp, err := g.ctx.Client.SendRequest(request)
+		
+		if err != nil {
+			g.ctx.Logger.Error("Error while sending the request", "err", err)
+			return nil
+		}
+
+		g.responsePanel.textView.SetText(resp.Body)
+
+
 		return nil
 	case tcell.KeyUp:
 		return nil
